@@ -30,7 +30,7 @@ jobs:
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip setuptools wheel
-          pip install pyqt5==5.15.6 lxml py2app
+          pip install pyqt5==5.15.10 lxml py2app
 
       - name: Build Resources
         run: |
@@ -71,7 +71,7 @@ jobs:
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip setuptools wheel
-          pip install pyqt5==5.15.6 lxml py2app
+          pip install pyqt5==5.15.10 lxml py2app
 
       - name: Build Resources
         run: |
@@ -111,7 +111,7 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          pip install pyinstaller pyqt5==5.15.6 lxml
+          pip install pyinstaller pyqt5==5.15.10 lxml
 
       - name: Build Resources
         run: |
@@ -150,7 +150,7 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          pip install pyinstaller pyqt5==5.15.6 lxml
+          pip install pyinstaller pyqt5==5.15.10 lxml
 
       - name: Build Resources
         run: |
