@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - 'v*'
+
   workflow_dispatch:
 
 permissions:
@@ -11,12 +12,11 @@ permissions:
 
 jobs:
 
-  package-macos:
-    runs-on: macos-latest
-
-    env:
-      PIPENV_VENV_IN_PROJECT: 1
-      PIPENV_IGNORE_VIRTUALENVS: 1
+  # =========================
+  # macOS Intel x86_64
+  # =========================
+  package-macos-intel:
+    runs-on: macos-13
 
     steps:
       - name: Checkout
@@ -29,28 +29,74 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          pip3 install pipenv
-          pipenv install pyqt5==5.15.6 lxml py2app
+          python -m pip install --upgrade pip setuptools wheel
+          pip install pyqt5==5.15.6 lxml py2app
 
-      - name: Build LabelImg
+      - name: Build Resources
         run: |
-          pipenv run make qt5py3
+          pyrcc5 -o libs/resources.py resources.qrc
 
-      - name: Package macOS App
+      - name: Build macOS Intel App
+        env:
+          ARCHFLAGS: "-arch x86_64"
         run: |
-          pipenv run python setup.py py2app
+          python setup.py py2app
 
-      - name: Archive macOS App
+      - name: Archive Intel App
         run: |
           cd dist
-          tar czf labelImg-macos.tgz labelImg.app
+          tar czf labelImg-macos-intel.tgz labelImg.app
 
-      - name: Upload macOS Artifact
+      - name: Upload Intel Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: labelimg-macos
-          path: dist/labelImg-macos.tgz
+          name: labelimg-macos-intel
+          path: dist/labelImg-macos-intel.tgz
 
+  # =========================
+  # macOS Apple Silicon ARM64
+  # =========================
+  package-macos-arm64:
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          pip install pyqt5==5.15.6 lxml py2app
+
+      - name: Build Resources
+        run: |
+          pyrcc5 -o libs/resources.py resources.qrc
+
+      - name: Build macOS ARM64 App
+        env:
+          ARCHFLAGS: "-arch arm64"
+        run: |
+          python setup.py py2app
+
+      - name: Archive ARM64 App
+        run: |
+          cd dist
+          tar czf labelImg-macos-arm64.tgz labelImg.app
+
+      - name: Upload ARM64 Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: labelimg-macos-arm64
+          path: dist/labelImg-macos-arm64.tgz
+
+  # =========================
+  # Windows x64
+  # =========================
   package-windows:
     runs-on: windows-latest
 
@@ -67,24 +113,17 @@ jobs:
         run: |
           pip install pyinstaller pyqt5==5.15.6 lxml
 
-      - name: Generate Resources
+      - name: Build Resources
         run: |
           pyrcc5 -o libs/resources.py resources.qrc
 
-      - name: Build EXE
+      - name: Build Windows EXE
+        shell: cmd
         run: |
-          pyinstaller ^
-            --hidden-import=PyQt5 ^
-            --hidden-import=lxml ^
-            --collect-all PyQt5 ^
-            -F ^
-            -n labelImg ^
-            -c ^
-            labelImg.py ^
-            -p ./libs ^
-            -p ./
+          pyinstaller --hidden-import=PyQt5 --hidden-import=lxml --collect-all PyQt5 -F -n labelImg -c labelImg.py -p ./libs -p ./
 
       - name: Rename EXE
+        shell: cmd
         run: |
           ren dist\labelImg.exe labelImg-windows.exe
 
@@ -94,6 +133,9 @@ jobs:
           name: labelimg-windows
           path: dist/labelImg-windows.exe
 
+  # =========================
+  # Linux x64
+  # =========================
   package-linux:
     runs-on: ubuntu-latest
 
@@ -110,22 +152,13 @@ jobs:
         run: |
           pip install pyinstaller pyqt5==5.15.6 lxml
 
-      - name: Generate Resources
+      - name: Build Resources
         run: |
           pyrcc5 -o libs/resources.py resources.qrc
 
-      - name: Build Binary
+      - name: Build Linux Binary
         run: |
-          pyinstaller \
-            --hidden-import=PyQt5 \
-            --hidden-import=lxml \
-            --collect-all PyQt5 \
-            -F \
-            -n labelImg \
-            -c \
-            labelImg.py \
-            -p ./libs \
-            -p ./
+          pyinstaller --hidden-import=PyQt5 --hidden-import=lxml --collect-all PyQt5 -F -n labelImg -c labelImg.py -p ./libs -p ./
 
       - name: Rename Binary
         run: |
@@ -137,19 +170,29 @@ jobs:
           name: labelimg-linux
           path: dist/labelImg-linux
 
+  # =========================
+  # Create GitHub Release
+  # =========================
   release:
     needs:
-      - package-macos
+      - package-macos-intel
+      - package-macos-arm64
       - package-windows
       - package-linux
 
     runs-on: ubuntu-latest
 
     steps:
-      - name: Download macOS Artifact
+      - name: Download macOS Intel Artifact
         uses: actions/download-artifact@v4
         with:
-          name: labelimg-macos
+          name: labelimg-macos-intel
+          path: artifacts
+
+      - name: Download macOS ARM64 Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: labelimg-macos-arm64
           path: artifacts
 
       - name: Download Windows Artifact
@@ -164,11 +207,12 @@ jobs:
           name: labelimg-linux
           path: artifacts
 
-      - name: Create Release
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          generate_release_notes: true
           files: |
-            artifacts/labelImg-macos.tgz
+            artifacts/labelImg-macos-intel.tgz
+            artifacts/labelImg-macos-arm64.tgz
             artifacts/labelImg-windows.exe
             artifacts/labelImg-linux
-          generate_release_notes: true
