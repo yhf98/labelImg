@@ -8,7 +8,10 @@ jobs:
       PIPENV_VENV_IN_PROJECT: 1
       PIPENV_IGNORE_VIRTUALENVS: 1
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
       - name: Setup Python Environment
         run: |
           pip3 install pipenv
@@ -33,7 +36,10 @@ jobs:
   package-windows:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
       - name: Setup Python Environment
         run: |
           pip3 install pyinstaller pyqt5==5.15.6 lxml
@@ -50,7 +56,10 @@ jobs:
   package-linux:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
       - name: Setup Python Environment
         run: |
           pip3 install pyinstaller pyqt5==5.15.6 lxml
